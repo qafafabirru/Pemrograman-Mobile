@@ -8,6 +8,7 @@ class PrefKeys {
   static const String userEmail = 'user_email';
   static const String isLoggedIn = 'is_logged_in';
   static const String isDarkMode = 'is_dark_mode'; // Latihan 1
+  static const String visitCount = 'visit_count'; // Latihan 2
 }
 
 // InheritedWidget: menyediakan data ke seluruh widget di bawahnya (subtree)
@@ -21,6 +22,9 @@ class UserProvider extends InheritedWidget {
   final bool isDarkMode;
   final VoidCallback toggleTheme;
 
+  // Latihan 2: jumlah aplikasi dibuka
+  final int visitCount;
+
   const UserProvider({
     super.key,
     required this.user,
@@ -29,6 +33,7 @@ class UserProvider extends InheritedWidget {
     required this.isLoading,
     required this.isDarkMode,
     required this.toggleTheme,
+    required this.visitCount,
     required super.child,
   });
 
@@ -54,7 +59,8 @@ class UserProvider extends InheritedWidget {
   bool updateShouldNotify(UserProvider oldWidget) {
     return oldWidget.user != user ||
         oldWidget.isLoading != isLoading ||
-        oldWidget.isDarkMode != isDarkMode;
+        oldWidget.isDarkMode != isDarkMode ||
+        oldWidget.visitCount != visitCount;
   }
 }
 
@@ -72,6 +78,7 @@ class _UserProviderWrapperState extends State<UserProviderWrapper> {
   User _user = User(name: '', email: '');
   bool _isLoading = true;
   bool _isDarkMode = false;
+  int _visitCount = 0;
 
   @override
   void initState() {
@@ -89,6 +96,10 @@ class _UserProviderWrapperState extends State<UserProviderWrapper> {
     // Latihan 1: muat preferensi tema
     final isDarkMode = prefs.getBool(PrefKeys.isDarkMode) ?? false;
 
+    // Latihan 2: tambah 1 setiap kali aplikasi dibuka, lalu simpan lagi
+    final visitCount = (prefs.getInt(PrefKeys.visitCount) ?? 0) + 1;
+    await prefs.setInt(PrefKeys.visitCount, visitCount);
+
     if (!mounted) return;
     setState(() {
       _user = User(
@@ -97,6 +108,7 @@ class _UserProviderWrapperState extends State<UserProviderWrapper> {
         isLoggedIn: isLoggedIn,
       );
       _isDarkMode = isDarkMode;
+      _visitCount = visitCount;
       _isLoading = false;
     });
   }
@@ -151,6 +163,7 @@ class _UserProviderWrapperState extends State<UserProviderWrapper> {
       isLoading: _isLoading,
       isDarkMode: _isDarkMode,
       toggleTheme: _toggleTheme,
+      visitCount: _visitCount,
       child: widget.child,
     );
   }
