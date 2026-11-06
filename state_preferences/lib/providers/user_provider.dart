@@ -11,6 +11,7 @@ class PrefKeys {
   static const String isDarkMode = 'is_dark_mode'; // Latihan 1
   static const String visitCount = 'visit_count'; // Latihan 2
   static const String favorites = 'favorites'; // Latihan 3
+  static const String registeredEmails = 'registered_emails'; // Latihan 5
 }
 
 // InheritedWidget: menyediakan data ke seluruh widget di bawahnya (subtree)
@@ -32,6 +33,9 @@ class UserProvider extends InheritedWidget {
   final void Function(String item) addFavorite;
   final void Function(String item) removeFavorite;
 
+  // Latihan 5: cek apakah email sudah dipakai
+  final Future<bool> Function(String email) isEmailTaken;
+
   const UserProvider({
     super.key,
     required this.user,
@@ -44,6 +48,7 @@ class UserProvider extends InheritedWidget {
     required this.favorites,
     required this.addFavorite,
     required this.removeFavorite,
+    required this.isEmailTaken,
     required super.child,
   });
 
@@ -92,6 +97,12 @@ class _UserProviderWrapperState extends State<UserProviderWrapper> {
   int _visitCount = 0;
   List<String> _favorites = const [];
 
+  // Latihan 5: simulasi email yang sudah terdaftar oleh pengguna lain
+  static const List<String> _dummyRegisteredEmails = [
+    'admin@amikom.ac.id',
+    'test@example.com',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -139,6 +150,17 @@ class _UserProviderWrapperState extends State<UserProviderWrapper> {
     await prefs.setString(PrefKeys.userName, newUser.name);
     await prefs.setString(PrefKeys.userEmail, newUser.email);
     await prefs.setBool(PrefKeys.isLoggedIn, newUser.isLoggedIn);
+
+    // Latihan 5: catat email yang pernah didaftarkan di perangkat ini
+    final registered =
+        prefs.getStringList(PrefKeys.registeredEmails) ?? <String>[];
+    final email = newUser.email.toLowerCase();
+    if (!registered.contains(email)) {
+      await prefs.setStringList(
+        PrefKeys.registeredEmails,
+        [...registered, email],
+      );
+    }
 
     if (!mounted) return;
     setState(() {
@@ -191,6 +213,22 @@ class _UserProviderWrapperState extends State<UserProviderWrapper> {
     _saveFavorites(_favorites.where((e) => e != item).toList());
   }
 
+  // Latihan 5: email dianggap sudah dipakai jika ada di daftar terdaftar
+  // dan BUKAN email milik user yang sedang tersimpan (user_email).
+  Future<bool> _isEmailTaken(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    final normalized = email.trim().toLowerCase();
+
+    final currentEmail =
+        (prefs.getString(PrefKeys.userEmail) ?? '').toLowerCase();
+    if (normalized == currentEmail) return false;
+
+    final registered =
+        prefs.getStringList(PrefKeys.registeredEmails) ?? <String>[];
+    return _dummyRegisteredEmails.contains(normalized) ||
+        registered.contains(normalized);
+  }
+
   @override
   Widget build(BuildContext context) {
     return UserProvider(
@@ -204,6 +242,7 @@ class _UserProviderWrapperState extends State<UserProviderWrapper> {
       favorites: _favorites,
       addFavorite: _addFavorite,
       removeFavorite: _removeFavorite,
+      isEmailTaken: _isEmailTaken,
       child: widget.child,
     );
   }

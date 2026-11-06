@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../providers/user_provider.dart';
+import '../utils/security_validator.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -38,8 +39,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final provider = UserProvider.read(context);
+    final messenger = ScaffoldMessenger.of(context);
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
+
+    // Latihan 5a: cek karakter berbahaya pada nama (lapisan kedua
+    // setelah validator TextFormField)
+    if (SecurityValidator.containsDangerousChars(name)) {
+      _showError(messenger, 'Nama mengandung karakter berbahaya.');
+      return;
+    }
+
+    // Latihan 5b: cek apakah email sudah digunakan (simulasi SharedPreferences)
+    final emailTaken = await provider.isEmailTaken(email);
+    if (!mounted) return;
+    if (emailTaken) {
+      _showError(messenger, 'Email $email sudah digunakan. Gunakan email lain.');
+      return;
+    }
 
     final updatedUser = provider.user.copyWith(
       name: name,
@@ -49,10 +66,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     provider.updateUser(updatedUser);
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(
         content: Text('Profil berhasil disimpan'),
         backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  // Latihan 5c: tampilkan pesan error via ScaffoldMessenger
+  void _showError(ScaffoldMessengerState messenger, String message) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
       ),
     );
   }
@@ -153,12 +186,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               prefixIcon: Icon(Icons.person),
               border: OutlineInputBorder(),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Nama tidak boleh kosong';
-              }
-              return null;
-            },
+            // Latihan 5: validasi nama + karakter berbahaya
+            validator: SecurityValidator.validateName,
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -238,6 +267,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         }
                         if (provider.favorites.contains(text)) {
                           return 'Hobi sudah ada di daftar';
+                        }
+                        // Latihan 5: input favorit juga dicek
+                        if (SecurityValidator.containsDangerousChars(text)) {
+                          return 'Mengandung karakter berbahaya';
                         }
                         return null;
                       },
