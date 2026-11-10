@@ -8,8 +8,6 @@ import 'user_repository.dart';
 class UserRepositoryImpl implements UserRepository {
   final ApiService _apiService;
 
-  /// Membuat repository. Jika [apiService] tidak diberikan,
-  /// dibuat instance [ApiService] baru.
   UserRepositoryImpl({ApiService? apiService})
       : _apiService = apiService ?? ApiService();
 
@@ -20,9 +18,6 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<User> getUserById(int id) async {
-    if (id <= 0) {
-      throw ApiException('ID pengguna harus berupa angka positif');
-    }
     return await _apiService.getUserById(id);
   }
 

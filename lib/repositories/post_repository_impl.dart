@@ -8,8 +8,6 @@ import 'post_repository.dart';
 class PostRepositoryImpl implements PostRepository {
   final ApiService _apiService;
 
-  /// Membuat repository. Jika [apiService] tidak diberikan,
-  /// dibuat instance [ApiService] baru.
   PostRepositoryImpl({ApiService? apiService})
       : _apiService = apiService ?? ApiService();
 

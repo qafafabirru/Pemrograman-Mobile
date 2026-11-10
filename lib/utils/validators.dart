@@ -3,13 +3,11 @@
 /// Class ini menyediakan method statis untuk memvalidasi input
 /// pengguna dan membersihkan karakter berbahaya.
 class Validators {
-  Validators._();
-
   /// Memvalidasi format email.
   ///
   /// Mengembalikan `true` jika [email] memiliki format yang valid.
   static bool isValidEmail(String email) {
-    final regex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    final regex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     return regex.hasMatch(email);
   }
 
@@ -26,12 +24,10 @@ class Validators {
 
   /// Membersihkan input dari karakter berbahaya.
   ///
-  /// Mengganti karakter `&`, `<`, `>`, `"`, dan `'` dengan HTML entities
-  /// untuk mencegah XSS. Karakter `&` diganti paling awal agar entity
-  /// hasil penggantian tidak ikut diubah lagi.
+  /// Mengganti karakter `<`, `>`, `"`, dan `'` dengan HTML entities
+  /// untuk mencegah XSS.
   static String sanitize(String input) {
     return input
-        .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
@@ -39,7 +35,7 @@ class Validators {
         .trim();
   }
 
-  /// Memvalidasi input teks.
+  /// Memvalidasi dan membersihkan input teks.
   ///
   /// Mengembalikan pesan error jika tidak valid, atau `null` jika valid.
   static String? validateText(
@@ -57,9 +53,7 @@ class Validators {
     return null;
   }
 
-  /// Memvalidasi email.
-  ///
-  /// Mengembalikan pesan error jika tidak valid, atau `null` jika valid.
+  /// Memvalidasi dan membersihkan email.
   static String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Email tidak boleh kosong';
@@ -70,53 +64,32 @@ class Validators {
     return null;
   }
 
-  // ---------------------------------------------------------------------
-  // Latihan 3: validasi yang lebih ketat
-  // ---------------------------------------------------------------------
+  // Latihan 3: validasi tambahan
 
   /// Memvalidasi nomor telepon: hanya angka, 10-13 digit.
-  ///
-  /// Mengembalikan pesan error jika tidak valid, atau `null` jika valid.
   static String? validatePhone(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Nomor telepon tidak boleh kosong';
     }
-    final phone = value.trim();
-    if (!RegExp(r'^[0-9]+$').hasMatch(phone)) {
-      return 'Nomor telepon hanya boleh berisi angka';
-    }
-    if (!RegExp(r'^[0-9]{10,13}$').hasMatch(phone)) {
-      return 'Nomor telepon harus 10-13 digit';
+    if (!RegExp(r'^[0-9]{10,13}$').hasMatch(value.trim())) {
+      return 'Nomor telepon harus berupa angka 10-13 digit';
     }
     return null;
   }
 
-  /// Memvalidasi URL: harus diawali `http://` atau `https://`
-  /// dan memiliki nama domain.
-  ///
-  /// Mengembalikan pesan error jika tidak valid, atau `null` jika valid.
+  /// Memvalidasi URL: harus diawali `http://` atau `https://`.
   static String? validateUrl(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'URL tidak boleh kosong';
     }
-    final url = value.trim();
-    if (!RegExp(r'^https?://', caseSensitive: false).hasMatch(url)) {
+    if (!RegExp(r'^https?://\S+$').hasMatch(value.trim())) {
       return 'URL harus diawali http:// atau https://';
-    }
-    final regex = RegExp(
-      r'^https?://[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+(:\d+)?(/\S*)?$',
-      caseSensitive: false,
-    );
-    if (!regex.hasMatch(url)) {
-      return 'Format URL tidak valid';
     }
     return null;
   }
 
   /// Memvalidasi password: minimal 8 karakter, mengandung huruf kapital,
   /// angka, dan simbol.
-  ///
-  /// Mengembalikan pesan error pertama yang ditemukan, atau `null` jika valid.
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Password tidak boleh kosong';

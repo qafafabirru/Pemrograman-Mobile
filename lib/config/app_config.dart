@@ -6,8 +6,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// base URL dan API key, sehingga tidak ada hardcoded credential
 /// di dalam kode sumber.
 class AppConfig {
-  AppConfig._();
-
   /// Base URL untuk API.
   ///
   /// Diambil dari environment variable `BASE_URL`.

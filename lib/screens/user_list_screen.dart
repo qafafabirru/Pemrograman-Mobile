@@ -10,10 +10,8 @@ import '../widgets/user_card.dart';
 /// Halaman ini menggunakan [UserRepository] untuk mengambil data,
 /// sehingga UI tidak bergantung langsung pada `ApiService`.
 class UserListScreen extends StatefulWidget {
-  /// Repository yang dipakai. Jika `null`, dipakai [UserRepositoryImpl].
   final UserRepository? repository;
 
-  /// Membuat [UserListScreen].
   const UserListScreen({super.key, this.repository});
 
   @override
@@ -34,7 +32,6 @@ class _UserListScreenState extends State<UserListScreen> {
     _loadUsers();
   }
 
-  /// Memuat daftar pengguna dari repository.
   Future<void> _loadUsers() async {
     setState(() {
       _isLoading = true;
@@ -131,13 +128,15 @@ class _UserListScreenState extends State<UserListScreen> {
         itemCount: _users.length,
         itemBuilder: (context, index) {
           final user = _users[index];
-          return UserCard(user: user, onTap: () => _showUserDetail(user));
+          return UserCard(
+            user: user,
+            onTap: () => _showUserDetail(user),
+          );
         },
       ),
     );
   }
 
-  /// Menampilkan detail [user] di bottom sheet.
   void _showUserDetail(User user) {
     showModalBottomSheet(
       context: context,
@@ -149,7 +148,10 @@ class _UserListScreenState extends State<UserListScreen> {
           children: [
             Text(
               user.name,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text('Username: ${user.username}'),

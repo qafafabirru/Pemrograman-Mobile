@@ -9,116 +9,118 @@ import '../models/post.dart';
 import '../models/user.dart';
 import '../utils/logger.dart';
 
-/// Exception API dengan pesan yang aman ditampilkan ke pengguna.
-///
-/// Pesan tidak memuat detail teknis (stack trace, URL lengkap, header)
-/// agar tidak membocorkan informasi internal aplikasi.
-class ApiException implements Exception {
-  /// Pesan error yang ramah pengguna.
-  final String message;
-
-  /// Membuat [ApiException] dengan [message].
-  ApiException(this.message);
-
-  @override
-  String toString() => message;
-}
-
 /// Service untuk komunikasi HTTP dengan REST API.
 ///
 /// Class ini menangani semua request HTTP ke API, termasuk
-/// penanganan error dan timeout. Base URL dan API key diambil dari
-/// [AppConfig] (file `.env`), tidak ditulis langsung di kode.
+/// penanganan error dan timeout.
 class ApiService {
   final http.Client _client;
   final String _baseUrl;
 
-  /// Timeout default untuk setiap request.
-  static const Duration defaultTimeout =
-      Duration(seconds: AppConfig.timeoutSeconds);
-
-  /// Membuat [ApiService].
-  ///
-  /// [client] dan [baseUrl] dapat diganti saat pengujian
-  /// (dependency injection). Jika tidak diisi, dipakai `http.Client()`
-  /// dan [AppConfig.baseUrl].
   ApiService({http.Client? client, String? baseUrl})
       : _client = client ?? http.Client(),
         _baseUrl = baseUrl ?? AppConfig.baseUrl;
 
-  /// Mengambil daftar pengguna dari endpoint `/users`.
+  /// Mengambil daftar pengguna dari API.
   ///
   /// Mengembalikan [List<User>] jika berhasil.
-  /// Melempar [ApiException] dengan pesan yang ramah pengguna jika gagal.
+  /// Melempar [Exception] dengan pesan yang ramah pengguna jika gagal.
   Future<List<User>> getUsers() async {
-    final data = await _getJson('/users') as List<dynamic>;
-    return data
-        .map((json) => User.fromJson(json as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Mengambil pengguna berdasarkan [id] dari endpoint `/users/{id}`.
-  Future<User> getUserById(int id) async {
-    final data = await _getJson('/users/$id') as Map<String, dynamic>;
-    return User.fromJson(data);
-  }
-
-  /// Mengambil daftar post dari endpoint `/posts` (Latihan 1).
-  Future<List<Post>> getPosts() async {
-    final data = await _getJson('/posts') as List<dynamic>;
-    return data
-        .map((json) => Post.fromJson(json as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Simulasi login untuk mendapatkan token.
-  ///
-  /// Di aplikasi nyata token berasal dari server. Email, password,
-  /// dan token tidak pernah dicetak ke log.
-  Future<String> login(String email, String password) async {
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (email.trim().isEmpty || password.isEmpty) {
-      throw ApiException('Email dan password tidak boleh kosong');
-    }
-
-    final token = 'dummy_token_${DateTime.now().millisecondsSinceEpoch}';
-    Logger.info('Login berhasil');
-    return token;
-  }
-
-  /// Helper GET + penanganan error yang dipakai semua endpoint.
-  Future<dynamic> _getJson(String endpoint) async {
     try {
-      _logRequest('GET', endpoint);
+      _logRequest('GET', '/users');
 
       final response = await _client
-          .get(Uri.parse('$_baseUrl$endpoint'), headers: _buildHeaders())
-          .timeout(defaultTimeout);
+          .get(
+            Uri.parse('$_baseUrl/users'),
+            headers: _buildHeaders(),
+          )
+          .timeout(const Duration(seconds: AppConfig.timeoutSeconds));
 
       _logResponse(response.statusCode);
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => User.fromJson(json)).toList();
+      } else {
+        throw Exception(
+          'Gagal memuat data. Status: ${response.statusCode}',
+        );
       }
-      throw ApiException('Gagal memuat data. Status: ${response.statusCode}');
-    } on ApiException {
-      rethrow;
     } on TimeoutException {
-      Logger.warning('Request timeout: $endpoint');
-      throw ApiException('Request timeout. Periksa koneksi internet Anda.');
+      throw Exception('Request timeout. Periksa koneksi internet Anda.');
     } on SocketException {
-      Logger.warning('Tidak ada koneksi: $endpoint');
-      throw ApiException('Tidak ada koneksi internet. Periksa jaringan Anda.');
-    } on http.ClientException catch (e) {
-      Logger.error('Client error', e);
-      throw ApiException('Tidak dapat terhubung ke server.');
-    } on FormatException catch (e) {
-      Logger.error('Format data tidak valid', e);
-      throw ApiException('Format data tidak valid.');
+      throw Exception('Tidak ada koneksi internet. Periksa jaringan Anda.');
+    } on FormatException {
+      throw Exception('Format data tidak valid.');
     } catch (e) {
-      Logger.error('Kesalahan tak terduga', e);
-      throw ApiException('Terjadi kesalahan yang tidak terduga.');
+      Logger.error('getUsers gagal: ${e.runtimeType}');
+      throw Exception('Terjadi kesalahan saat memuat data.');
+    }
+  }
+
+  /// Mengambil pengguna berdasarkan [id].
+  Future<User> getUserById(int id) async {
+    try {
+      _logRequest('GET', '/users/$id');
+
+      final response = await _client
+          .get(
+            Uri.parse('$_baseUrl/users/$id'),
+            headers: _buildHeaders(),
+          )
+          .timeout(const Duration(seconds: AppConfig.timeoutSeconds));
+
+      _logResponse(response.statusCode);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return User.fromJson(data);
+      } else {
+        throw Exception(
+          'Gagal memuat data. Status: ${response.statusCode}',
+        );
+      }
+    } on TimeoutException {
+      throw Exception('Request timeout. Periksa koneksi internet Anda.');
+    } on SocketException {
+      throw Exception('Tidak ada koneksi internet. Periksa jaringan Anda.');
+    } catch (e) {
+      Logger.error('getUserById gagal: ${e.runtimeType}');
+      throw Exception('Terjadi kesalahan saat memuat data.');
+    }
+  }
+
+  /// Mengambil daftar post dari API (Latihan 1).
+  Future<List<Post>> getPosts() async {
+    try {
+      _logRequest('GET', '/posts');
+
+      final response = await _client
+          .get(
+            Uri.parse('$_baseUrl/posts'),
+            headers: _buildHeaders(),
+          )
+          .timeout(const Duration(seconds: AppConfig.timeoutSeconds));
+
+      _logResponse(response.statusCode);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Post.fromJson(json)).toList();
+      } else {
+        throw Exception(
+          'Gagal memuat data. Status: ${response.statusCode}',
+        );
+      }
+    } on TimeoutException {
+      throw Exception('Request timeout. Periksa koneksi internet Anda.');
+    } on SocketException {
+      throw Exception('Tidak ada koneksi internet. Periksa jaringan Anda.');
+    } on FormatException {
+      throw Exception('Format data tidak valid.');
+    } catch (e) {
+      Logger.error('getPosts gagal: ${e.runtimeType}');
+      throw Exception('Terjadi kesalahan saat memuat data.');
     }
   }
 
@@ -132,17 +134,17 @@ class ApiService {
     };
   }
 
-  /// Logging request yang aman (tidak mencetak header/API key).
+  /// Logging request yang aman (tidak mencetak token/API key).
   void _logRequest(String method, String endpoint) {
     Logger.debug('[$method] $endpoint');
   }
 
-  /// Logging response yang aman (hanya status code, bukan body).
+  /// Logging response yang aman (hanya status code).
   void _logResponse(int statusCode) {
     Logger.debug('Response status: $statusCode');
   }
 
-  /// Menutup HTTP client.
+  /// Menutup client.
   void dispose() {
     _client.close();
   }
